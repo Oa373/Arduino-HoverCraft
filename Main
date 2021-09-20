@@ -1,0 +1,196 @@
+
+#include <PS2X_lib.h>   //ps2 Libray
+#include <Servo.h>       // library for esc servo
+
+
+#define PS2_DAT        13      
+#define PS2_CMD        11  
+#define PS2_SEL        10 
+#define PS2_CLK        12  
+#define pressures false
+#define rumble   false
+
+
+Servo rudder ;
+Servo propulsion;
+Servo lift ;
+PS2X ps2x;
+
+//Lifting 
+int halfLift =80;
+int fullLift =100;
+//Propulsion
+int halfThrust= 70;
+int fullThrust =100;
+
+int error=0 ;   // PS2 variable
+byte type = 0;   // Ps2 variable
+byte vibrate = 0;  //ps2 variable
+
+int r_balance =65;   // rudder midlle postion for servo
+int adjust = 30;     // servo angle calibration
+ 
+
+// Analog sticks of ps2 controller
+int ps2RY =0;
+int ps2RX=0;
+int ps2LY=0;
+int ps2LX=0;
+
+
+
+
+void start(){
+   if(ps2x.ButtonPressed(PSB_START)){
+   
+    lift.write(50);
+     propulsion.write(50);
+     delay(1000);
+   
+   }   else{ 
+     if (ps2x.ButtonPressed(PSB_SELECT))
+   
+    
+    lift.write(20);
+    propulsion.write(20);
+    delay(10);
+    
+   
+
+   }
+}
+
+
+
+
+
+
+void setup() {
+ 
+ Serial.begin(57600);
+
+ error = ps2x.config_gamepad(12, 11, 10, 13, false, false);   //setup pins and settings: GamePad(clock, command, attention, data, Pressures?, Rumble?) check for error
+ rudder.attach(7);       // rudder servo connected to pin 7
+ propulsion.attach(3);   // propulsion attached to pin 9
+ lift.attach(9);         // lift esc connected to pin 8
+ delay(10);  
+rudder.write(r_balance);    // write position of servo 
+propulsion.write(70);      // arm ESC
+lift.write(90);             // arm ESC
+delay(1000);
+
+if(error == 0)   
+Serial.println("Found Controller, configured successful");                  // controller connection succesful 
+else if(error == 1)
+Serial.println("No controller found, check wiring.");  
+else if(error == 2)
+Serial.println("Controller found but not accepting commands. see readme.txt to enable debug.");   
+else if(error == 3)     
+Serial.println("Controller refusing to enter Pressures mode, may not support it."); 
+
+ 
+  type = ps2x.readType();   
+  switch(type){ 
+    case 0:       Serial.println("Unknown Controller type"); 
+                 
+      break;   
+      case 1:       Serial.println("DualShock Controller Found");     
+      break;
+      case 2:       Serial.println("GuitarHero Controller Found");    
+      break;   }
+      
+        error = 0;
+
+type = 1; 
+
+}
+
+
+
+
+void loop() {
+
+ if(error==1) //skip loop if no controller found
+  return;
+
+  ps2x.read_gamepad(false, vibrate);  // read the controller 
+  start();
+
+
+  ps2RX = ps2x.Analog(PSS_RX); //Right Stick  x axis
+
+// steering 
+
+if(ps2x.Button(PSB_PAD_LEFT)){
+rudder.write(35);                    // turn servo 45 degrees clc?
+}
+else{
+
+if(ps2x.Button(PSB_PAD_RIGHT))
+
+{
+rudder.write(95);               
+
+}
+else{
+
+rudder.write(map(ps2RX,0,255,r_balance-adjust,r_balance+adjust));  // scale the value to be suitable to servo/rudder
+}
+}
+if (ps2x.ButtonPressed(PSB_SQUARE)){     //if button pressed send signal to esc
+  propulsion.write(halfThrust);
+  delay(10);
+}
+  else {
+    if(ps2x.Analog(PSB_TRIANGLE)){   
+ 
+     propulsion.write(fullThrust);
+   delay(10);
+}
+
+}
+// Lifting HoverCraft
+if(ps2x.ButtonPressed(PSB_CIRCLE)){   //if button pressed send signal to esc
+lift.write(halfLift);
+ delay(50);
+}
+else {
+  if(ps2x.Button(PSB_CROSS)){
+  
+     lift.write(fullLift);
+     delay(50);
+}
+}
+
+//Thrust HoverCraft
+if (ps2x.ButtonPressed(PSB_PAD_UP)){
+  propulsion.write(140);
+  delay(10);
+}
+  else if(ps2x.Analog(PSB_PAD_DOWN)){   
+     propulsion.write(50);
+   delay(10);
+
+    }
+
+
+// Lifting HoverCraft
+if (ps2x.ButtonPressed(PSB_CIRCLE)){
+      lift.write(70);
+      delay(10);
+}
+else if(ps2x.ButtonPressed(PSB_CROSS)){
+   // Serial.println(PSS_RY);
+     lift.write(120);
+     delay(50);
+}
+
+  
+
+
+//ps2x.read_gamepad(fae, vibrate);
+delay(50);
+
+
+
+}
